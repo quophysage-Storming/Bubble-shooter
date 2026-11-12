@@ -5,7 +5,7 @@
     box-sizing: border-box;
 }
 
-/* Vertical page layout: ads can only occupy top/bottom rows. */
+/* Vertical page layout: ads stay above and below the game. */
 html,
 body {
     width: 100%;
@@ -22,31 +22,49 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    gap: 12px;
-    padding: 10px 0;
+    gap: 10px;
+    padding: 8px 0;
 }
 
-/* Keep every ad area centered and prevent horizontal overflow. */
+/* Responsive ad areas: centered, compact, and never wider than the screen. */
 .ad-slot {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 100%;
-    max-width: 100%;
+    width: min(100%, 728px);
+    max-width: 100vw;
     min-width: 0;
     overflow: hidden;
     text-align: center;
     flex: 0 0 auto;
+    padding: 0 6px;
 }
 
-.ad-slot > *,
+/* Constrain common elements injected by ad networks. */
 .ad-slot iframe,
-.ad-slot img {
+.ad-slot img,
+.ad-slot video,
+.ad-slot ins,
+.ad-slot > div,
+.ad-slot > iframe {
     max-width: 100% !important;
 }
 
-/* Game stays centered between the top and bottom ad areas. */
+.ad-slot iframe {
+    width: 100% !important;
+    max-width: 468px !important;
+    border: 0;
+}
+
+.ad-slot img,
+.ad-slot video {
+    height: auto !important;
+    max-height: 180px !important;
+    object-fit: contain;
+}
+
+/* Game stays centered between the ad areas. */
 .game-container {
     display: flex;
     align-items: center;
@@ -70,11 +88,25 @@ body {
     touch-action: none;
 }
 
-/* Small mobile screens */
+/* Phones: compact banner width to fit narrow screens. */
 @media (max-width: 480px) {
     body {
-        gap: 8px;
-        padding: 8px 0;
+        gap: 7px;
+        padding: 6px 0;
+    }
+
+    .ad-slot {
+        width: 100%;
+        padding: 0 4px;
+    }
+
+    .ad-slot iframe {
+        max-width: 320px !important;
+    }
+
+    .ad-slot img,
+    .ad-slot video {
+        max-height: 120px !important;
     }
 
     #viewport {
