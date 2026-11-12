@@ -5,50 +5,78 @@
     box-sizing: border-box;
 }
 
-/* Page background */
+/* Vertical page layout: ads can only occupy top/bottom rows. */
 html,
 body {
     width: 100%;
-    height: 100%;
     min-height: 100%;
-    overflow: hidden;
 }
 
 body {
-    background-color: #000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     min-height: 100vh;
     min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background-color: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 10px 0;
 }
 
-/* Main game wrapper */
-div {
-    border-radius: 30px;
+/* Keep every ad area centered and prevent horizontal overflow. */
+.ad-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    text-align: center;
+    flex: 0 0 auto;
+}
+
+.ad-slot > *,
+.ad-slot iframe,
+.ad-slot img {
+    max-width: 100% !important;
+}
+
+/* Game stays centered between the top and bottom ad areas. */
+.game-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 100%;
+    flex: 0 0 auto;
 }
 
 /* Game canvas */
 #viewport {
     display: block;
-
     width: min(100vw, 100dvh);
     height: min(100vw, 100dvh);
-
     max-width: 100%;
     max-height: 100%;
-
     aspect-ratio: 1 / 1;
-
     border-radius: 30px;
     border: 3px solid green;
-
     object-fit: contain;
     touch-action: none;
 }
 
 /* Small mobile screens */
 @media (max-width: 480px) {
+    body {
+        gap: 8px;
+        padding: 8px 0;
+    }
+
     #viewport {
         border-radius: 18px;
         border-width: 2px;
