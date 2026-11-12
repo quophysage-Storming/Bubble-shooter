@@ -74,6 +74,27 @@ window.onload = function() {
     
     // Score
     var score = 0;
+    var highScore = 0;
+    var difficultyLevel = 1;
+    var shotsFired = 0;
+    var highScoreKey = "bubbleShooterHighScore";
+
+    function loadHighScore() {
+        try { highScore = Math.max(0, Number(localStorage.getItem(highScoreKey)) || 0); }
+        catch (e) { highScore = 0; }
+    }
+
+    function saveHighScore() {
+        if (score > highScore) {
+            highScore = score;
+            try { localStorage.setItem(highScoreKey, String(highScore)); } catch (e) {}
+        }
+    }
+
+    function addScore(points) {
+        score += points;
+        saveHighScore();
+    }
     
     var turncounter = 0;
     var rowoffset = 0;
@@ -136,8 +157,9 @@ window.onload = function() {
         bubbleimage = images[0];
     
         // Add mouse events
-        canvas.addEventListener("mousemove", onMouseMove);
-        canvas.addEventListener("mousedown", onMouseDown);
+        loadHighScore();
+        canvas.addEventListener("pointermove", onPointerMove, { passive: false });
+        canvas.addEventListener("pointerdown", onPointerDown, { passive: false });
         
         // Initialize the two-dimensional tile array
         for (var i=0; i<level.columns; i++) {
@@ -233,59 +255,52 @@ window.onload = function() {
     }
     
     function stateShootBubble(dt) {
-        // Bubble is moving
-        
-        // Move the bubble in the direction of the mouse
-        player.bubble.x += dt * player.bubble.speed * Math.cos(degToRad(player.bubble.angle));
-        player.bubble.y += dt * player.bubble.speed * -1*Math.sin(degToRad(player.bubble.angle));
-        
-        // Handle left and right collisions with the level
-        if (player.bubble.x <= level.x) {
-            // Left edge
-            player.bubble.angle = 180 - player.bubble.angle;
-            player.bubble.x = level.x;
-        } else if (player.bubble.x + level.tilewidth >= level.x + level.width) {
-            // Right edge
-            player.bubble.angle = 180 - player.bubble.angle;
-            player.bubble.x = level.x + level.width - level.tilewidth;
-        }
- 
-        // Collisions with the top of the level
-        if (player.bubble.y <= level.y) {
-            // Top collision
-            player.bubble.y = level.y;
-            snapBubble();
-            return;
-        }
-        
-        // Collisions with other tiles
-        for (var i=0; i<level.columns; i++) {
-            for (var j=0; j<level.rows; j++) {
-                var tile = level.tiles[i][j];
-                
-                // Skip empty tiles
-                if (tile.type < 0) {
-                    continue;
-                }
-                
-                // Check for intersections
-                var coord = getTileCoordinate(i, j);
-                if (circleIntersection(player.bubble.x + level.tilewidth/2,
-                                       player.bubble.y + level.tileheight/2,
-                                       level.radius,
-                                       coord.tilex + level.tilewidth/2,
-                                       coord.tiley + level.tileheight/2,
-                                       level.radius)) {
-                                        
-                    // Intersection with a level bubble
-                    snapBubble();
-                    return;
+        // Sub-step movement so fast bubbles cannot pass through a bubble between frames.
+        var remaining = Math.max(0, dt);
+        var maxStep = Math.max(3, level.radius * 0.35);
+        var totalDistance = player.bubble.speed * remaining;
+        var steps = Math.max(1, Math.ceil(totalDistance / maxStep));
+        var stepTime = remaining / steps;
+
+        for (var step = 0; step < steps; step++) {
+            player.bubble.x += stepTime * player.bubble.speed * Math.cos(degToRad(player.bubble.angle));
+            player.bubble.y -= stepTime * player.bubble.speed * Math.sin(degToRad(player.bubble.angle));
+
+            if (player.bubble.x <= level.x) {
+                player.bubble.x = level.x;
+                player.bubble.angle = 180 - player.bubble.angle;
+            } else if (player.bubble.x + level.tilewidth >= level.x + level.width) {
+                player.bubble.x = level.x + level.width - level.tilewidth;
+                player.bubble.angle = 180 - player.bubble.angle;
+            }
+
+            if (player.bubble.y <= level.y) {
+                player.bubble.y = level.y;
+                snapBubble();
+                return;
+            }
+
+            for (var i = 0; i < level.columns; i++) {
+                for (var j = 0; j < level.rows; j++) {
+                    var tile = level.tiles[i][j];
+                    if (tile.type < 0 || tile.removed) continue;
+                    var coord = getTileCoordinate(i, j);
+                    if (circleIntersection(
+                        player.bubble.x + level.tilewidth / 2,
+                        player.bubble.y + level.tileheight / 2,
+                        level.radius,
+                        coord.tilex + level.tilewidth / 2,
+                        coord.tiley + level.tileheight / 2,
+                        level.radius
+                    )) {
+                        snapBubble();
+                        return;
+                    }
                 }
             }
         }
     }
-    
-    function stateRemoveCluster(dt) {
+        function stateRemoveCluster(dt) {
         if (animationstate == 0) {
             resetRemoved();
             
@@ -296,7 +311,7 @@ window.onload = function() {
             }
             
             // Add cluster score
-            score += cluster.length * 100;
+            addScore(cluster.length * 100);
             
             // Find floating clusters
             floatingclusters = findFloatingClusters();
@@ -310,7 +325,7 @@ window.onload = function() {
                         tile.shift = 1;
                         tile.velocity = player.bubble.dropspeed;
                         
-                        score += 100;
+                        addScore(100);
                     }
                 }
             }
@@ -385,6 +400,7 @@ window.onload = function() {
                 }
                 
                 if (tilefound) {
+                    if (checkGameOver()) return;
                     setGameState(gamestates.ready);
                 } else {
                     // No tiles left, game over
@@ -396,100 +412,93 @@ window.onload = function() {
     
     // Snap bubble to the grid
     function snapBubble() {
-        // Get the grid position
-        var centerx = player.bubble.x + level.tilewidth/2;
-        var centery = player.bubble.y + level.tileheight/2;
-        var gridpos = getGridPosition(centerx, centery);
+        var centerx = player.bubble.x + level.tilewidth / 2;
+        var centery = player.bubble.y + level.tileheight / 2;
+        var gridpos = findBestEmptyCell(centerx, centery);
 
-        // Make sure the grid position is valid
-        if (gridpos.x < 0) {
-            gridpos.x = 0;
-        }
-            
-        if (gridpos.x >= level.columns) {
-            gridpos.x = level.columns - 1;
-        }
-
-        if (gridpos.y < 0) {
-            gridpos.y = 0;
-        }
-            
-        if (gridpos.y >= level.rows) {
-            gridpos.y = level.rows - 1;
-        }
-
-        // Check if the tile is empty
-        var addtile = false;
-        if (level.tiles[gridpos.x][gridpos.y].type != -1) {
-            // Tile is not empty, shift the new tile downwards
-            for (var newrow=gridpos.y+1; newrow<level.rows; newrow++) {
-                if (level.tiles[gridpos.x][newrow].type == -1) {
-                    gridpos.y = newrow;
-                    addtile = true;
-                    break;
-                }
-            }
-        } else {
-            addtile = true;
-        }
-
-        // Add the tile to the grid
-        if (addtile) {
-            // Hide the player bubble
+        // No legal cell means the board is full; never overwrite an existing bubble.
+        if (!gridpos) {
             player.bubble.visible = false;
-        
-            // Set the tile
-            level.tiles[gridpos.x][gridpos.y].type = player.bubble.tiletype;
-            
-            // Check for game over
-            if (checkGameOver()) {
-                return;
-            }
-            
-            // Find clusters
-            cluster = findCluster(gridpos.x, gridpos.y, true, true, false);
-            
-            if (cluster.length >= 3) {
-                // Remove the cluster
-                setGameState(gamestates.removecluster);
-                return;
-            }
+            setGameState(gamestates.gameover);
+            return;
         }
-        
-        // No clusters found
+
+        player.bubble.visible = false;
+        var placed = level.tiles[gridpos.x][gridpos.y];
+        placed.type = player.bubble.tiletype;
+        placed.alpha = 1;
+        placed.shift = 0;
+        placed.removed = false;
+
+        shotsFired++;
+        difficultyLevel = 1 + Math.floor(shotsFired / 12) + Math.floor(score / 1500);
+
+        cluster = findCluster(gridpos.x, gridpos.y, true, true, false);
+        if (cluster.length >= 3) {
+            setGameState(gamestates.removecluster);
+            return;
+        }
+
+        if (checkGameOver()) return;
         turncounter++;
-        if (turncounter >= 5) {
-            // Add a row of bubbles
+        var shotsPerRow = Math.max(2, 5 - Math.floor((difficultyLevel - 1) / 2));
+        if (turncounter >= shotsPerRow) {
             addBubbles();
             turncounter = 0;
             rowoffset = (rowoffset + 1) % 2;
-            
-            if (checkGameOver()) {
-                return;
-            }
+            if (checkGameOver()) return;
         }
 
-        // Next bubble
         nextBubble();
         setGameState(gamestates.ready);
     }
-    
-    function checkGameOver() {
-        // Check for game over
-        for (var i=0; i<level.columns; i++) {
-            
-            if (level.tiles[i][level.rows-1].type != -1) {
-                // Game over
+
+    // Select the nearest empty cell. Prefer cells touching the existing board so
+    // bubbles cannot be stranded in disconnected or visually overlapping positions.
+    function findBestEmptyCell(cx, cy) {
+        var candidates = [];
+        for (var y = 0; y < level.rows; y++) {
+            for (var x = 0; x < level.columns; x++) {
+                if (level.tiles[x][y].type !== -1) continue;
+                var coord = getTileCoordinate(x, y);
+                var tx = coord.tilex + level.tilewidth / 2;
+                var ty = coord.tiley + level.tileheight / 2;
+                var dx = tx - cx, dy = ty - cy;
+                var distance = dx * dx + dy * dy;
+                var attached = (y === 0);
+                var neighbors = getNeighbors(level.tiles[x][y]);
+                for (var n = 0; n < neighbors.length; n++) {
+                    if (neighbors[n].type >= 0 && !neighbors[n].removed) {
+                        attached = true;
+                        break;
+                    }
+                }
+                candidates.push({ x: x, y: y, distance: distance, attached: attached });
+            }
+        }
+        if (!candidates.length) return null;
+        candidates.sort(function(a, b) {
+            if (a.attached !== b.attached) return a.attached ? -1 : 1;
+            return a.distance - b.distance;
+        });
+        // Prefer a connected location unless the board is empty.
+        var connected = candidates.filter(function(c) { return c.attached; });
+        var chosen = connected.length ? connected[0] : candidates[0];
+        return { x: chosen.x, y: chosen.y };
+    }
+        function checkGameOver() {
+        // A bubble reaching the bottom playable row ends the round.
+        for (var i = 0; i < level.columns; i++) {
+            if (level.tiles[i][level.rows - 1].type >= 0) {
+                saveHighScore();
                 nextBubble();
                 setGameState(gamestates.gameover);
                 return true;
             }
         }
-        
         return false;
     }
-    
-    function addBubbles() {
+        function addBubbles() {
         // Move the rows downwards
         for (var i=0; i<level.columns; i++) {
             for (var j=0; j<level.rows-1; j++) {
@@ -530,55 +539,35 @@ window.onload = function() {
     
    
     function findCluster(tx, ty, matchtype, reset, skipremoved) {
-        // Reset the processed flags
-        if (reset) {
-            resetProcessed();
-        }
-       
+        if (reset) resetProcessed();
+        if (tx < 0 || tx >= level.columns || ty < 0 || ty >= level.rows) return [];
         var targettile = level.tiles[tx][ty];
-        
-        var toprocess = [targettile];
-        targettile.processed = true;
-        var foundcluster = [];
+        if (!targettile || targettile.type < 0 || targettile.removed) return [];
 
-        while (toprocess.length > 0) {
-            // Pop the last element from the array
-            var currenttile = toprocess.pop();
-            
-            // Skip processed and empty tiles
-            if (currenttile.type == -1) {
-                continue;
-            }
-            
-            // Skip tiles with the removed flag
-            if (skipremoved && currenttile.removed) {
-                continue;
-            }
-            
-          
-            if (!matchtype || (currenttile.type == targettile.type)) {
-                // Add current tile to the cluster
-                foundcluster.push(currenttile);
-                
-                // Get the neighbors of the current tile
-                var neighbors = getNeighbors(currenttile);
-                
-                // Check the type of each neighbor
-                for (var i=0; i<neighbors.length; i++) {
-                    if (!neighbors[i].processed) {
-                        // Add the neighbor to the toprocess array
-                        toprocess.push(neighbors[i]);
-                        neighbors[i].processed = true;
-                    }
+        var stack = [targettile];
+        var foundcluster = [];
+        targettile.processed = true;
+        while (stack.length) {
+            var currenttile = stack.pop();
+            if (currenttile.type < 0 || (skipremoved && currenttile.removed)) continue;
+            if (matchtype && currenttile.type !== targettile.type) continue;
+            foundcluster.push(currenttile);
+
+            var neighbors = getNeighbors(currenttile);
+            for (var i = 0; i < neighbors.length; i++) {
+                var neighbor = neighbors[i];
+                if (!neighbor.processed && neighbor.type >= 0 && (!skipremoved || !neighbor.removed) &&
+                    (!matchtype || neighbor.type === targettile.type)) {
+                    neighbor.processed = true;
+                    stack.push(neighbor);
                 }
             }
         }
-        
-        // Return the found cluster
         return foundcluster;
     }
-    
+
     // Find floating clusters
+        // Find floating clusters
     function findFloatingClusters() {
         // Reset the processed flags
         resetProcessed();
@@ -707,6 +696,8 @@ window.onload = function() {
         drawCenterText("Your Score:", scorex, scorey, 150);
         context.font = "24px Verdana";
         drawCenterText(score, scorex, scorey+30, 150);
+        context.font = "13px Verdana";
+        drawCenterText("Best: " + highScore, scorex, scorey+48, 150);
 
         // Render cluster
         if (showcluster) {
@@ -752,7 +743,7 @@ window.onload = function() {
         // Display fps
         context.fillStyle = "whitesmoke";
         context.font = "12px cursive";
-        context.fillText("Fps: " + fps, 13, 57);
+        context.fillText("Fps: " + fps + "   Level: " + difficultyLevel, 13, 57);
     }
     
     // Render tiles
@@ -870,7 +861,8 @@ window.onload = function() {
     function newGame() {
         // Reset score
         score = 0;
-        
+        shotsFired = 0;
+        difficultyLevel = 1;
         turncounter = 0;
         rowoffset = 0;
         
@@ -954,6 +946,7 @@ window.onload = function() {
         player.bubble.y = player.y;
         player.bubble.angle = player.angle;
         player.bubble.tiletype = player.tiletype;
+        player.bubble.speed = Math.min(1250, 1000 + (difficultyLevel - 1) * 25);
 
         // Set the gamestate
         setGameState(gamestates.shootbubble);
@@ -984,59 +977,43 @@ window.onload = function() {
         return angle * (Math.PI / 180);
     }
 
-    // On mouse movement
-    function onMouseMove(e) {
-        // Get the mouse position
+    // Pointer controls work with mouse, touch and stylus.
+    function updateAim(e) {
         var pos = getMousePos(canvas, e);
-
-        // Get the mouse angle
-        var mouseangle = radToDeg(Math.atan2((player.y+level.tileheight/2) - pos.y, pos.x - (player.x+level.tilewidth/2)));
-
-    
-        if (mouseangle < 0) {
-            mouseangle = 180 + (180 + mouseangle);
-        }
-
-      
-        var lbound = 8;
-        var ubound = 172;
-        if (mouseangle > 90 && mouseangle < 270) {
-            // Left
-            if (mouseangle > ubound) {
-                mouseangle = ubound;
-            }
-        } else {
-            // Right
-            if (mouseangle < lbound || mouseangle >= 270) {
-                mouseangle = lbound;
-            }
-        }
-
-        // Set the player angle
-        player.angle = mouseangle;
+        var mouseangle = radToDeg(Math.atan2(
+            (player.y + level.tileheight / 2) - pos.y,
+            pos.x - (player.x + level.tilewidth / 2)
+        ));
+        if (mouseangle < 0) mouseangle += 360;
+        player.angle = Math.max(8, Math.min(172, mouseangle));
     }
-    
-    // On mouse button click
-    function onMouseDown(e) {
-       
-        var pos = getMousePos(canvas, e);
-        
-        if (gamestate == gamestates.ready) {
+
+    function onPointerMove(e) {
+        if (e.cancelable) e.preventDefault();
+        updateAim(e);
+    }
+
+    function onPointerDown(e) {
+        if (e.cancelable) e.preventDefault();
+        updateAim(e);
+        if (gamestate === gamestates.ready) {
             shootBubble();
-        } else if (gamestate == gamestates.gameover) {
+        } else if (gamestate === gamestates.gameover) {
             newGame();
         }
     }
-    
-    // Get the mouse position
+
     function getMousePos(canvas, e) {
         var rect = canvas.getBoundingClientRect();
+        var scaleX = canvas.width / rect.width;
+        var scaleY = canvas.height / rect.height;
         return {
-            x: Math.round((e.clientX - rect.left)/(rect.right - rect.left)*canvas.width),
-            y: Math.round((e.clientY - rect.top)/(rect.bottom - rect.top)*canvas.height)
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY
         };
     }
-    
-    // Call init to start 
+
+    // Call init to start
+        // Call init to start 
     init();
 };
