@@ -25,10 +25,6 @@ body {
     padding: 8px 0;
 }
 
-/*
- * Ads remain in normal document flow, centered above/below the game.
- * Do not force iframe sizes: ad providers control their own creative dimensions.
- */
 .ad-slot {
     display: flex;
     flex-direction: column;
@@ -43,7 +39,7 @@ body {
     padding: 0 4px;
 }
 
-/* Prevent common injected elements from causing horizontal page overflow. */
+/* Let the ad network render its own creative dimensions, but prevent page overflow. */
 .ad-slot iframe,
 .ad-slot img,
 .ad-slot video,
@@ -57,7 +53,6 @@ body {
     object-fit: contain;
 }
 
-/* Game stays centered between vertical ad placements. */
 .game-container {
     display: flex;
     align-items: center;
@@ -96,9 +91,30 @@ body {
     }
 }
 
+/* Landscape: preserve the vertical ad stack, while shrinking the square game
+   so more vertical room is available for the top and bottom ad placements. */
 @media (orientation: landscape) {
+    body {
+        gap: 5px;
+        padding: 4px 0;
+    }
+
     #viewport {
-        width: min(100vw, 100dvh);
-        height: min(100vw, 100dvh);
+        width: min(72vw, 58dvh);
+        height: min(72vw, 58dvh);
+        border-radius: 16px;
+    }
+
+    .ad-slot {
+        width: 100%;
+        padding-inline: 4px;
+    }
+}
+
+/* Portrait fallback: the site remains usable and scrollable. */
+@media (orientation: portrait) {
+    #viewport {
+        width: min(100vw, 82dvh);
+        height: min(100vw, 82dvh);
     }
 }
