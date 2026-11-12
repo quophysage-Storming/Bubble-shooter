@@ -1,17 +1,28 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Bubble Shooter Game</title>
-<!-- Linking CSS & JS -->
-<script type='text/javascript' src='script.js'></script>
-<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+    <meta name="theme-color" content="#111827">
+
+    <title>Bubble Shooter Game</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <script src="script.js" defer></script>
 </head>
 
 <body>
-    <!-- main div  -->
-<div>
-<canvas style="margin-left: 30%;" id="viewport" width="628" height="628"></canvas></div>
-</body>
 
-</html> 
+    <main class="game-container">
+        <canvas id="viewport" width="628" height="628">
+            Your browser does not support HTML5 Canvas.
+        </canvas>
+    </main>
+
+</body>
+</html>
