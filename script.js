@@ -400,6 +400,7 @@ window.onload = function() {
                 }
                 
                 if (tilefound) {
+                    if (checkGameOver()) return;
                     setGameState(gamestates.ready);
                 } else {
                     // No tiles left, game over
@@ -429,7 +430,8 @@ window.onload = function() {
         placed.shift = 0;
         placed.removed = false;
 
-        if (checkGameOver()) return;
+        shotsFired++;
+        difficultyLevel = 1 + Math.floor(shotsFired / 12) + Math.floor(score / 1500);
 
         cluster = findCluster(gridpos.x, gridpos.y, true, true, false);
         if (cluster.length >= 3) {
@@ -437,9 +439,8 @@ window.onload = function() {
             return;
         }
 
+        if (checkGameOver()) return;
         turncounter++;
-        shotsFired++;
-        difficultyLevel = 1 + Math.floor(shotsFired / 12) + Math.floor(score / 1500);
         var shotsPerRow = Math.max(2, 5 - Math.floor((difficultyLevel - 1) / 2));
         if (turncounter >= shotsPerRow) {
             addBubbles();
