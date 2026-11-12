@@ -1,0 +1,15 @@
+body{
+	background-color:#000;
+}
+div{
+    border-radius: 30px;
+}
+#viewport{
+ height: 628px;
+ width: 628px;
+ /* margin-left: 30%; */
+ border-radius: 50px;
+ border: 3px green;
+}
+
+
