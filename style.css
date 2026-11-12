@@ -1,15 +1,64 @@
-body{
-	background-color:#000;
+/* Global reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
-div{
+
+/* Page background */
+html,
+body {
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    overflow: hidden;
+}
+
+body {
+    background-color: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+
+/* Main game wrapper */
+div {
     border-radius: 30px;
 }
-#viewport{
- height: 628px;
- width: 628px;
- /* margin-left: 30%; */
- border-radius: 50px;
- border: 3px green;
+
+/* Game canvas */
+#viewport {
+    display: block;
+
+    width: min(100vw, 100dvh);
+    height: min(100vw, 100dvh);
+
+    max-width: 100%;
+    max-height: 100%;
+
+    aspect-ratio: 1 / 1;
+
+    border-radius: 30px;
+    border: 3px solid green;
+
+    object-fit: contain;
+    touch-action: none;
 }
 
+/* Small mobile screens */
+@media (max-width: 480px) {
+    #viewport {
+        border-radius: 18px;
+        border-width: 2px;
+    }
+}
 
+/* Landscape mode */
+@media (orientation: landscape) {
+    #viewport {
+        width: min(100vw, 100dvh);
+        height: min(100vw, 100dvh);
+    }
+}
