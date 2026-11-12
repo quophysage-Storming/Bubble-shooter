@@ -10,10 +10,11 @@
     <script src="script.js" defer></script>
 </head>
 <body>
-    <!-- Top ad slot: centered and full-width constrained. -->
-    <div class="ad-slot ad-slot-top" aria-label="Advertisement">
+    <!-- Ad network #1: original banner invocation and matching container. -->
+    <section class="ad-slot ad-slot-top" aria-label="Advertisement">
+        <script async="async" data-cfasync="false" src="https://pl32322814.profitableratecpmnetwork.com/9e173f551f66a13545bec9642c6d437b/invoke.js"></script>
         <div id="container-9e173f551f66a13545bec9642c6d437b"></div>
-    </div>
+    </section>
 
     <main class="game-container">
         <canvas id="viewport" width="628" height="628">
@@ -21,11 +22,14 @@
         </canvas>
     </main>
 
-    <!-- Bottom ad scripts are grouped after the game. -->
-    <div class="ad-slot ad-slot-bottom" aria-label="Advertisement">
-        <script async="async" data-cfasync="false" src="https://pl32322814.profitableratecpmnetwork.com/9e173f551f66a13545bec9642c6d437b/invoke.js"></script>
-        <script async="async" src="https://pl32322813.profitableratecpmnetwork.com/d1/11/87/d11187203c3ec8122171bc4908dfa2fc.js"></script>
-        <script async="async" data-cfasync="false" src="https://bauval.org/14/92ba5fddf3c54e068cd99e9344c3b28a"></script>
-    </div>
+    <!-- Ad network #2: kept as the original standalone script. -->
+    <section class="ad-slot ad-slot-bottom ad-slot-second" aria-label="Advertisement">
+        <script src="https://pl32322813.profitableratecpmnetwork.com/d1/11/87/d11187203c3ec8122171bc4908dfa2fc.js"></script>
+    </section>
+
+    <!-- Ad network #3: kept as the original standalone script. -->
+    <section class="ad-slot ad-slot-bottom ad-slot-third" aria-label="Advertisement">
+        <script data-cfasync="false" src="https://bauval.org/14/92ba5fddf3c54e068cd99e9344c3b28a"></script>
+    </section>
 </body>
 </html>
